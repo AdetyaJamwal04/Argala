@@ -1,0 +1,7 @@
+# Locked dependencies for Python 3.14 on 32-bit ARM (Android Termux)
+fastapi==0.114.2
+pydantic==1.10.26
+starlette==0.38.6
+anyio==4.15.1
+typing-extensions==4.16.0
+uvicorn<0.31

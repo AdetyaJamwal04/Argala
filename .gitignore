@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Local Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Argala SQLite Data & WAL journal files
+data/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Runtime Logs & PIDs
+*.log
+*.pid
+gateway.log
+boot.log
+
+# Environment & Secrets (Never commit secrets!)
+.env
+.env.*
+!.env.example
+
+# IDE & OS Metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
