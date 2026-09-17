@@ -339,7 +339,7 @@ class VaultManager:
                 method=broker_req.method.upper(),
             )
             try:
-                with urllib.request.urlopen(req, timeout=15) as resp:
+                with urllib.request.urlopen(req, timeout=45) as resp:
                     resp_data = resp.read().decode("utf-8", errors="ignore")
                     try:
                         parsed_body = json.loads(resp_data)
