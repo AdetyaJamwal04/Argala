@@ -66,7 +66,7 @@ echo "[+] Installed executable boot script at: $BOOT_SCRIPT"
 
 echo ""
 echo "=================================================="
-echo "   INSTALLATION COMPLETE!                        "
+echo "   INSTALLATION COMPLETE!                         "
 echo "=================================================="
 echo "Next step: Ensure Termux:Boot APK is installed on the phone."
 echo "Script location: $BOOT_SCRIPT"

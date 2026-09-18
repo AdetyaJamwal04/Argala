@@ -6,6 +6,7 @@ from app.api.routes_mcp import router as mcp_router
 from app.api.routes_jobs import router as jobs_router
 from app.api.routes_vault import router as vault_router
 from app.api.routes_approvals import router as approvals_router
+from app.api.routes_actuation import router as actuation_router
 from app.api.routes_admin import router as admin_router
 
 api_router = APIRouter()
@@ -17,5 +18,6 @@ api_router.include_router(mcp_router, prefix="/v1")
 api_router.include_router(jobs_router, prefix="/v1")
 api_router.include_router(vault_router, prefix="/v1")
 api_router.include_router(approvals_router, prefix="/v1")
+api_router.include_router(actuation_router, prefix="/v1")
 api_router.include_router(admin_router, prefix="/v1")
 

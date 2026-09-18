@@ -160,6 +160,122 @@ class ToolRegistry:
             handler=self._handle_get_job,
         )
 
+        # Tool 5: Request Cyber-Physical Human Approval (HITL)
+        self.register_tool(
+            name="android_request_approval",
+            description="Requests physical Human-in-the-Loop (HITL) approval on the Android phone. Triggers haptic vibration, TTS voice announcement, and displays an interactive approval ticket on the phone screen.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "description": "Action being requested, e.g. 'database.drop_schema' or 'deploy.production'",
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "Target resource, e.g. 'prod_database_cluster'",
+                    },
+                    "risk_level": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "critical"],
+                        "description": "Risk level of the requested action",
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "description": "Human-readable question or warning displayed on the phone",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Timeout in seconds before the ticket expires (default 60)",
+                    },
+                },
+                "required": ["action", "target"],
+            },
+            handler=self._handle_request_approval,
+        )
+
+        # Tool 6: Direct Hardware Actuation
+        self.register_tool(
+            name="android_actuate",
+            description="Directly triggers physical sensory cues on the Android phone: haptic vibration, voice TTS announcement, or notification shade alerts.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "vibrate_ms": {
+                        "type": "integer",
+                        "description": "Haptic vibration duration in milliseconds (e.g. 500)",
+                    },
+                    "speak_text": {
+                        "type": "string",
+                        "description": "Text to speak aloud via Android Text-to-Speech",
+                    },
+                    "notification_title": {
+                        "type": "string",
+                        "description": "Title for Android notification alert",
+                    },
+                    "notification_content": {
+                        "type": "string",
+                        "description": "Body message for notification alert",
+                    },
+                },
+                "required": [],
+            },
+            handler=self._handle_actuate,
+        )
+
+        # Tool 7: Sovereign Vault Broker
+        self.register_tool(
+            name="android_vault_broker",
+            description="Proxies an outbound API request through the Android phone's sovereign vault. The phone decrypts the requested service secret (e.g. 'gemini') and forwards the call without exposing credentials to the agent.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Full target URL to invoke (e.g. 'https://api.github.com/user')",
+                    },
+                    "method": {
+                        "type": "string",
+                        "description": "HTTP method: GET, POST, PUT, DELETE (default GET)",
+                    },
+                    "secret_id": {
+                        "type": "string",
+                        "description": "Registered vault secret name (e.g. 'gemini', 'github_token')",
+                    },
+                    "header_name": {
+                        "type": "string",
+                        "description": "Header name for secret injection (default 'Authorization')",
+                    },
+                    "header_prefix": {
+                        "type": "string",
+                        "description": "Prefix before secret (default 'Bearer ')",
+                    },
+                    "headers": {
+                        "type": "object",
+                        "description": "Additional HTTP headers",
+                    },
+                    "json_body": {
+                        "type": "object",
+                        "description": "JSON body payload for outbound request",
+                    },
+                    "service": {
+                        "type": "string",
+                        "description": "Alias for secret_id",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Alias for url",
+                    },
+                    "body": {
+                        "type": "object",
+                        "description": "Alias for json_body",
+                    },
+                },
+                "required": [],
+            },
+            handler=self._handle_vault_broker,
+        )
+
     async def _handle_telemetry(self) -> Dict[str, Any]:
         telemetry = await get_node_telemetry()
         return telemetry.dict()
@@ -193,6 +309,109 @@ class ToolRegistry:
         if not job:
             raise KeyError(f"Job '{job_id}' not found")
         return job.dict()
+
+    async def _handle_request_approval(
+        self,
+        action: str,
+        target: str,
+        risk_level: str = "HIGH",
+        prompt: Optional[str] = None,
+        summary: Optional[str] = None,
+        requester: str = "agent-mcp",
+        timeout_seconds: Optional[int] = None,
+        ttl_seconds: int = 120,
+        parameters: Optional[Dict[str, Any]] = None,
+        sound_alert: bool = True,
+        vibrate: bool = True,
+    ) -> Dict[str, Any]:
+        from app.hitl.manager import approval_manager
+        from app.hitl.models import ApprovalTicketCreate, RiskLevel
+
+        ticket_summary = summary or prompt or f"Agent requests permission for '{action}' on '{target}'"
+        actual_ttl = ttl_seconds if timeout_seconds is None else timeout_seconds
+
+        try:
+            parsed_risk = RiskLevel(risk_level.upper())
+        except (ValueError, KeyError, AttributeError):
+            parsed_risk = RiskLevel.HIGH
+
+        req = ApprovalTicketCreate(
+            action=action,
+            target=target,
+            parameters=parameters or {},
+            requester=requester,
+            risk_level=parsed_risk,
+            summary=ticket_summary,
+            ttl_seconds=max(10, min(3600, actual_ttl)),
+            sound_alert=sound_alert,
+            vibrate=vibrate,
+        )
+        ticket = approval_manager.create_ticket(req)
+        return ticket.dict()
+
+    async def _handle_actuate(
+        self,
+        vibrate_ms: Optional[int] = None,
+        speak_text: Optional[str] = None,
+        notification_title: Optional[str] = None,
+        notification_content: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        import asyncio
+        from app.hardware.actuation import vibrate_phone, speak_tts, send_android_notification
+
+        tasks = []
+        task_keys = []
+        if vibrate_ms:
+            tasks.append(vibrate_phone(vibrate_ms))
+            task_keys.append("vibrated")
+        if speak_text:
+            tasks.append(speak_tts(speak_text))
+            task_keys.append("spoken")
+        if notification_title and notification_content:
+            tasks.append(send_android_notification(notification_title, notification_content))
+            task_keys.append("notified")
+
+        results = {}
+        if tasks:
+            task_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for k, r in zip(task_keys, task_results):
+                results[k] = bool(r) if not isinstance(r, Exception) else False
+
+        return {"status": "success", "actuated": results}
+
+    async def _handle_vault_broker(
+        self,
+        url: Optional[str] = None,
+        method: str = "GET",
+        secret_id: Optional[str] = None,
+        header_name: str = "Authorization",
+        header_prefix: str = "Bearer ",
+        headers: Optional[Dict[str, str]] = None,
+        json_body: Optional[Dict[str, Any]] = None,
+        service: Optional[str] = None,
+        path: Optional[str] = None,
+        body: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        from app.vault.manager import vault_manager
+        from app.vault.models import BrokerRequest
+
+        target_url = url or path
+        if not target_url:
+            raise ValueError("Parameter 'url' (or 'path') is required for vault broker.")
+
+        target_secret = secret_id or service
+        target_body = json_body if json_body is not None else body
+
+        req = BrokerRequest(
+            url=target_url,
+            method=method.upper(),
+            secret_id=target_secret,
+            header_name=header_name,
+            header_prefix=header_prefix,
+            headers=headers or {},
+            json_body=target_body,
+        )
+        return await vault_manager.broker_http_request(req)
 
 
 # Global Tool Registry singleton

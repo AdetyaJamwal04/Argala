@@ -97,7 +97,41 @@ class QueueWorker:
                 "processed_by": self.worker_id,
             }
 
-        # 3. Intentional Failure (for testing retries and Dead-Letter Queue)
+        # 3. Hardware Actuation Job (vibration, TTS voice, notification)
+        elif capability == "hardware.actuate":
+            from app.hardware.actuation import vibrate_phone, speak_tts, send_android_notification
+            tasks = []
+            if payload.get("vibrate_ms"):
+                tasks.append(vibrate_phone(payload["vibrate_ms"]))
+            if payload.get("speak_text"):
+                tasks.append(speak_tts(payload["speak_text"]))
+            if payload.get("notification_title") and payload.get("notification_content"):
+                tasks.append(send_android_notification(
+                    payload["notification_title"],
+                    payload["notification_content"],
+                ))
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+            return {
+                "capability": capability,
+                "status": "actuated",
+                "processed_by": self.worker_id,
+            }
+
+        # 4. Asynchronous Outbound Vault Broker Job
+        elif capability == "vault.broker":
+            from app.vault.manager import vault_manager
+            from app.vault.models import BrokerRequest
+            broker_req = BrokerRequest(**payload)
+            resp = await vault_manager.broker_http_request(broker_req)
+            return {
+                "capability": capability,
+                "status": "brokered",
+                "broker_response": resp,
+                "processed_by": self.worker_id,
+            }
+
+        # 5. Intentional Failure (for testing retries and Dead-Letter Queue)
         elif capability == "test.fail":
             error_message = payload.get("error", "Intentional test failure triggered")
             raise RuntimeError(error_message)

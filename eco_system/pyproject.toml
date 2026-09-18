@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argala"
+version = "0.1.0"
+description = "Sovereign Control Plane & Edge Cyber-Physical SDK for Argala"
+readme = "README.md"
+authors = [
+    { name = "Adetya Jamwal" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=1.10.0",
+]
+
+[project.optional-dependencies]
+async = ["httpx>=0.24.0"]
+genai = ["google-genai>=0.1.0"]
+proxy = ["fastapi>=0.95.0", "uvicorn>=0.22.0"]
+full = [
+    "httpx>=0.24.0",
+    "google-genai>=0.1.0",
+    "fastapi>=0.95.0",
+    "uvicorn>=0.22.0",
+]
+
+[project.scripts]
+argala = "argala.cli.main:main"

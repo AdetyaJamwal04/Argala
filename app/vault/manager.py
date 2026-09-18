@@ -226,6 +226,8 @@ class VaultManager:
                 "INSERT INTO used_nonces (nonce, used_at, expires_at) VALUES (?, ?, ?);",
                 (token.nonce, now, token.expires_at),
             )
+            # Prune expired nonces to keep table bounded
+            cursor.execute("DELETE FROM used_nonces WHERE expires_at < ?;", (now,))
             cursor.close()
 
         self._log_audit_event(
@@ -318,6 +320,19 @@ class VaultManager:
         and performs the outbound HTTP call from the phone's network interface.
         The calling agent receives the API output, never the raw credential.
         """
+        import urllib.parse
+        parsed = urllib.parse.urlparse(broker_req.url)
+        if parsed.scheme.lower() not in ("http", "https"):
+            raise ValueError(f"Invalid URL scheme '{parsed.scheme}'. Only http and https are allowed.")
+
+        hostname = (parsed.hostname or "").lower()
+        if not hostname:
+            raise ValueError("Invalid target URL: missing hostname.")
+
+        blocked_hosts = {"127.0.0.1", "localhost", "0.0.0.0", "169.254.169.254", "::1"}
+        if hostname in blocked_hosts or hostname.startswith("127."):
+            raise ValueError(f"Access to private/loopback address '{hostname}' is prohibited via vault broker.")
+
         headers = dict(broker_req.headers or {})
 
         # Inject credential if requested

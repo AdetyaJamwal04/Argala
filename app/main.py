@@ -28,6 +28,8 @@ async def lifespan(app: FastAPI):
     and handles graceful teardown on SIGTERM/SIGINT.
     """
     logger.info("Initializing %s (Node ID: %s)", settings.GATEWAY_NAME, settings.NODE_ID)
+    if settings.API_KEY == "argala-dev-key-change-me":
+        logger.warning("SECURITY WARNING: Gateway is using default development API key! Set GATEWAY_API_KEY environment variable for production.")
     
     # 1. Initialize SQLite Database & Tables in WAL mode
     init_db()
@@ -53,10 +55,11 @@ def create_app() -> FastAPI:
     )
 
     # CORS Middleware: Enable cross-origin requests from desktop tools / dashboards
+    allow_credentials = "*" not in settings.CORS_ORIGINS
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

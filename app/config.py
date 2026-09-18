@@ -1,5 +1,12 @@
 from typing import List
-from pydantic import BaseSettings, Field
+try:
+    from pydantic import BaseSettings, Field
+except ImportError:
+    try:
+        from pydantic.v1 import BaseSettings, Field
+    except ImportError:
+        from pydantic_settings import BaseSettings
+        from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -18,7 +25,12 @@ class Settings(BaseSettings):
 
     
     # Allowed origins for web dashboards and cross-origin agents
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3000",
+        "http://100.68.31.91:8000",
+    ]
     
     # Operation mode
     DEBUG: bool = False
