@@ -44,7 +44,7 @@ The Argala Ecosystem operates under a strict principle of **Sovereign Physical A
   │   ┌───────────────────┐                         ┌───────────────────┐  │
   │   │ Cyber-Physical    │                         │ Sovereign Vault   │  │
   │   │ Actuation Bridge  │                         │ & External Broker │  │
-  │   │ (Vibrate/TTS/Shade│                         │ (Secret Injection)│  │
+  │   │(Vibrate/TTS/Shade)│                         │ (Secret Injection)│  │
   │   └───────────────────┘                         └─────────┬─────────┘  │
   └───────────────────────────────────────────────────────────┼────────────┘
                                                               │ Secretless
